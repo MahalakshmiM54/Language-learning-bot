@@ -1,0 +1,51 @@
+import streamlit as st
+import boto3
+import os
+
+# AWS Credentials (use aws configure for better security)
+translate = boto3.client('translate')
+polly = boto3.client('polly')
+
+st.set_page_config(page_title="Language Learning Bot", layout="centered")
+st.title("🗣️ Language Learning Bot")
+
+# Input section
+text_input = st.text_input("Enter text in English:")
+target_language = st.selectbox("Select target language:", {
+    "French": "fr",
+    "Spanish": "es",
+    "German": "de",
+    "Hindi": "hi",
+    "Tamil": "ta",
+    "Japanese": "ja"
+})
+
+# Translate and synthesize
+if st.button("Translate & Speak") and text_input:
+    # Translation
+    result = translate.translate_text(
+        Text=text_input,
+        SourceLanguageCode='en',
+        TargetLanguageCode=target_language
+    )
+
+    translated_text = result['TranslatedText']
+    st.success(f"Translated Text ({target_language}): {translated_text}")
+
+    # Text to Speech
+    voice_id_map = {
+        "fr": "Celine", "es": "Lupe", "de": "Hans",
+        "hi": "Aditi", "ta": "Aditi", "ja": "Mizuki"
+    }
+
+    tts_response = polly.synthesize_speech(
+        Text=translated_text,
+        OutputFormat='mp3',
+        VoiceId=voice_id_map.get(target_language, 'Joanna')
+    )
+
+    audio_path = "output.mp3"
+    with open(audio_path, "wb") as f:
+        f.write(tts_response['AudioStream'].read())
+
+    st.audio(audio_path, format='audio/mp3')
